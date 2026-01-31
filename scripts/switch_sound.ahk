@@ -5,35 +5,34 @@
 ; https://www.autohotkey.com/boards/viewtopic.php?p=387886#p387886
 
 ;Uncomment if device ids change and it gives a "device does not exist" error
-/*
+
 List := EnumAudioEndpoints()
 
+/*
 Devices := ""
 for Device in List
-    Devices .= Format("{} ({})`n`n", Device["Name"], Device["ID"])
+    Devices .= Format("{} `n{}`n`n", Device["Name"], Device["ID"])
 MsgBox(Devices)
 MsgBox(GetCurrentDefaultAudioDevice())
 */
 
+headphonesDevice := ""
+speakersDevice := ""
 
-; Define the two audio device IDs
-device1 := "{0.0.0.00000000}.{62eb3e87-7854-417c-bf94-33344003ef7e}" ; casque
-device2 := "{0.0.0.00000000}.{521dd965-1034-4535-9f0c-14f8eee62372}" ; enceintes
-
-currentDevice := GetCurrentDefaultAudioDevice()
+for Device in List {
+    if (Device["Name"] = "Headphones (High Definition Audio Device)") {
+        headphonesDevice := Device["ID"]
+    } else if (Device["Name"] = "Speakers (High Definition Audio Device)") {
+        speakersDevice := Device["ID"]
+    }
+}
 
 if (A_Args[1] = "casque") {
-	SetDefaultEndpoint(device1)
+	SetDefaultEndpoint(headphonesDevice)
     ToolTip("Son sur casque")
 } else if (A_Args[1] = "enceintes") {
-    SetDefaultEndpoint(device2)
+    SetDefaultEndpoint(speakersDevice)
     ToolTip("Son sur enceintes")
-} else if (currentDevice = device1) {
-    SetDefaultEndpoint(device2)
-    ToolTip("Son sur enceintes")
-} else {
-    SetDefaultEndpoint(device1)
-    ToolTip("Son sur casque")
 }
 
 Sleep(1000)
