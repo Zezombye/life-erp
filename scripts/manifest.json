@@ -1,0 +1,14 @@
+{
+    "manifest_version": 3,
+    "name": "Strip Twitter CSP",
+    "version": "1.0",
+    "permissions": ["declarativeNetRequest", "declarativeNetRequestWithHostAccess"],
+    "host_permissions": ["https://x.com/*"],
+    "declarative_net_request": {
+        "rule_resources": [{
+            "id": "ruleset_1",
+            "enabled": true,
+            "path": "rules.json"
+        }]
+    }
+}

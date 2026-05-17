@@ -1,0 +1,48 @@
+{
+    "name": "life-erp",
+    "version": "0.0.1",
+    "description": "Habit/stock/weather/workout/etc tracker",
+    "productName": "Zez's Life ERP",
+    "author": "Zezombye",
+    "type": "module",
+    "private": true,
+    "scripts": {
+        "lint": "eslint -c ./eslint.config.js \"./src*/**/*.{js,cjs,mjs,vue}\"",
+        "test": "echo \"No test specified\" && exit 0",
+        "dev": "quasar dev",
+        "build": "quasar build",
+        "postinstall": "quasar prepare"
+    },
+    "dependencies": {
+        "@primeuix/themes": "^1.2.5",
+        "@quasar/extras": "^1.16.4",
+        "pinia": "^3.0.1",
+        "primeicons": "^7.0.0",
+        "primevue": "^4.4.1",
+        "quasar": "^2.16.0",
+        "vue": "3.5.20",
+        "vue-router": "^4.0.12"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.14.0",
+        "@quasar/app-vite": "^2.1.0",
+        "@types/node": "^20.5.9",
+        "@vue/eslint-config-typescript": "^14.4.0",
+        "autoprefixer": "^10.4.2",
+        "eslint": "^9.14.0",
+        "eslint-plugin-vue": "^10.4.0",
+        "globals": "^16.4.0",
+        "typescript": "^5.9.2",
+        "unocss": "^66.5.3",
+        "vite-plugin-checker": "^0.10.3",
+        "vue-eslint-parser": "^10.2.0",
+        "vue-tsc": "^3.0.7"
+    },
+    "engines": {
+        "node": "^28 || ^26 || ^24 || ^22 || ^20 || ^18",
+        "npm": "please-use-pnpm",
+        "yarn": "please-use-pnpm",
+        "pnpm": ">= 10.0.0"
+    },
+    "packageManager": "pnpm@10.18.0+sha512.e804f889f1cecc40d572db084eec3e4881739f8dec69c0ff10d2d1beff9a4e309383ba27b5b750059d7f4c149535b6cd0d2cb1ed3aeb739239a4284a68f40cfa"
+}
