@@ -6,35 +6,24 @@ Todo :
 
 ## Habit tracker
 
-Excel-like table with calculated fields that can be manually edited + custom colors
+- [x] Excel-like table with calculated fields that can be manually edited + custom colors
+- [x] Graphs
+- [ ] Motivational images
+- [x] Tabs
+- [x] Workout tracker
+- [x] Chore tracker
+- [x] Todo list
+- [x] Variable editor
+- [ ] Workout timer editor
+- [x] Stock watchlist tracker
+- [x] Calendar with auto stock market events + ability to easily add events and reminders (+ email and push)
+- [x] Scheduled tasks
+- [x] Logs viewer for those tasks + potential errors
 
-Graphs
-
-Motivational images
-
-Tabs
-
-Workout tracker
-
-Chore tracker
-
-Todo list
-
-Variable editor
-
-Mobile friendly in pwa webapp
-
-Scheduled tasks + logs for those tasks
-
-Python/JS backend (which tech? falcon?) + sqlite
-
-Offline syncing
-
-Workout timer editor
-
-Stock watchlist tracker
-
-Widget on phone?
+- [ ] Mobile friendly in pwa webapp
+- [ ] Python/JS backend (which tech? falcon?) + sqlite
+- [ ] Offline syncing
+- [ ] Widget on phone?
 
 ## Install the dependencies
 ```bash

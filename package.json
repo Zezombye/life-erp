@@ -16,6 +16,7 @@
     "dependencies": {
         "@primeuix/themes": "^1.2.5",
         "@quasar/extras": "^1.16.4",
+        "markdown-it": "^14.1.1",
         "pinia": "^3.0.1",
         "primeicons": "^7.0.0",
         "primevue": "^4.4.1",

@@ -1,0 +1,257 @@
+{
+    "habits": {
+        "columns": {
+            "date": {
+                "type": "TEXT",
+                "primary_key": true
+            },
+            "weight": {
+                "type": "REAL"
+            },
+            "job": {
+                "type": "REAL"
+            },
+            "workout": {
+                "type": "REAL"
+            },
+            "business": {
+                "type": "REAL"
+            },
+            "reading_watching": {
+                "type": "REAL"
+            },
+            "misc": {
+                "type": "REAL"
+            },
+            "girls_family": {
+                "type": "REAL"
+            },
+            "mma": {
+                "type": "REAL"
+            },
+            "total": {
+                "type": "REAL"
+            },
+            "total_hours": {
+                "type": "REAL"
+            }
+        }
+    },
+    "settings": {
+        "columns": {
+            "key": {
+                "type": "TEXT",
+                "primary_key": true
+            },
+            "value": {
+                "type": "TEXT"
+            }
+        }
+    },
+    "workouts": {
+        "columns": {
+            "date": {
+                "type": "TEXT",
+                "primary_key": true
+            },
+            "type": {
+                "type": "TEXT"
+            },
+            "e1s1_wt": {
+                "type": "REAL"
+            },
+            "e1s1_reps": {
+                "type": "REAL"
+            },
+            "e1s2_wt": {
+                "type": "REAL"
+            },
+            "e1s2_reps": {
+                "type": "REAL"
+            },
+            "e1s3_wt": {
+                "type": "REAL"
+            },
+            "e1s3_reps": {
+                "type": "REAL"
+            },
+            "e2s1_wt": {
+                "type": "REAL"
+            },
+            "e2s1_reps": {
+                "type": "REAL"
+            },
+            "e2s2_wt": {
+                "type": "REAL"
+            },
+            "e2s2_reps": {
+                "type": "REAL"
+            },
+            "e2s3_wt": {
+                "type": "REAL"
+            },
+            "e2s3_reps": {
+                "type": "REAL"
+            },
+            "e3s1_wt": {
+                "type": "REAL"
+            },
+            "e3s1_reps": {
+                "type": "REAL"
+            },
+            "e3s2_wt": {
+                "type": "REAL"
+            },
+            "e3s2_reps": {
+                "type": "REAL"
+            },
+            "e3s3_wt": {
+                "type": "REAL"
+            },
+            "e3s3_reps": {
+                "type": "REAL"
+            },
+            "e4s1_wt": {
+                "type": "REAL"
+            },
+            "e4s1_reps": {
+                "type": "REAL"
+            },
+            "e4s2_wt": {
+                "type": "REAL"
+            },
+            "e4s2_reps": {
+                "type": "REAL"
+            },
+            "e4s3_wt": {
+                "type": "REAL"
+            },
+            "e4s3_reps": {
+                "type": "REAL"
+            },
+            "notes": {
+                "type": "TEXT"
+            }
+        }
+    },
+    "chores": {
+        "columns": {
+            "id": {
+                "type": "INTEGER",
+                "primary_key": true
+            },
+            "title": {
+                "type": "TEXT"
+            },
+            "interval_days": {
+                "type": "INTEGER"
+            },
+            "last_done": {
+                "type": "TEXT"
+            }
+        }
+    },
+    "todos": {
+        "columns": {
+            "id": {
+                "type": "INTEGER",
+                "primary_key": true
+            },
+            "title": {
+                "type": "TEXT"
+            },
+            "status": {
+                "type": "TEXT"
+            },
+            "created_at": {
+                "type": "TEXT"
+            },
+            "closed_at": {
+                "type": "TEXT"
+            }
+        }
+    },
+    "todo_messages": {
+        "columns": {
+            "id": {
+                "type": "INTEGER",
+                "primary_key": true
+            },
+            "todo_id": {
+                "type": "INTEGER"
+            },
+            "content": {
+                "type": "TEXT"
+            },
+            "created_at": {
+                "type": "TEXT"
+            },
+            "updated_at": {
+                "type": "TEXT"
+            }
+        }
+    },
+    "calendar_events": {
+        "columns": {
+            "id": {
+                "type": "INTEGER",
+                "primary_key": true
+            },
+            "title": {
+                "type": "TEXT"
+            },
+            "date": {
+                "type": "TEXT"
+            },
+            "time": {
+                "type": "TEXT"
+            },
+            "category": {
+                "type": "TEXT"
+            },
+            "auto": {
+                "type": "INTEGER"
+            }
+        }
+    },
+    "task_runs": {
+        "columns": {
+            "id": {
+                "type": "INTEGER",
+                "primary_key": true
+            },
+            "task_name": {
+                "type": "TEXT"
+            },
+            "status": {
+                "type": "TEXT"
+            },
+            "started_at": {
+                "type": "TEXT"
+            },
+            "finished_at": {
+                "type": "TEXT"
+            }
+        }
+    },
+    "task_logs": {
+        "columns": {
+            "id": {
+                "type": "INTEGER",
+                "primary_key": true
+            },
+            "run_id": {
+                "type": "INTEGER"
+            },
+            "task_name": {
+                "type": "TEXT"
+            },
+            "message": {
+                "type": "TEXT"
+            },
+            "created_at": {
+                "type": "TEXT"
+            }
+        }
+    }
+}
