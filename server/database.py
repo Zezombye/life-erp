@@ -122,6 +122,178 @@ DEFAULT_SETTINGS = {
     "watchlist": "AAPL,MSFT,GOOGL,AMZN,TSLA",
 }
 
+# ── Workout Presets ──
+
+def get_workout_presets():
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM workout_presets ORDER BY position ASC, id ASC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def create_workout_preset(name, content):
+    conn = get_connection()
+    max_pos = conn.execute("SELECT COALESCE(MAX(position), 0) FROM workout_presets").fetchone()[0]
+    cursor = conn.execute(
+        "INSERT INTO workout_presets (name, content, position) VALUES (?, ?, ?)",
+        (name, content, max_pos + 1)
+    )
+    conn.commit()
+    row = dict(conn.execute("SELECT * FROM workout_presets WHERE id = ?", (cursor.lastrowid,)).fetchone())
+    conn.close()
+    return row
+
+def update_workout_preset(preset_id, name, content):
+    conn = get_connection()
+    conn.execute("UPDATE workout_presets SET name = ?, content = ? WHERE id = ?", (name, content, preset_id))
+    conn.commit()
+    row = conn.execute("SELECT * FROM workout_presets WHERE id = ?", (preset_id,)).fetchone()
+    conn.close()
+    if row is None:
+        raise ValueError(f"Preset {preset_id} not found")
+    return dict(row)
+
+def delete_workout_preset(preset_id):
+    conn = get_connection()
+    conn.execute("DELETE FROM workout_presets WHERE id = ?", (preset_id,))
+    conn.commit()
+    conn.close()
+
+# ── Habit Timer ──
+
+TIMER_ACTIVITIES = {'job', 'business', 'reading_watching', 'misc', 'girls_family', 'mma'}
+
+def get_habit_timers():
+    """Get all active timers."""
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM habit_timer ORDER BY id ASC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def start_habit_timer(activity, started_at):
+    """Start a new timer. Multiple timers can run concurrently."""
+    if activity not in TIMER_ACTIVITIES:
+        raise ValueError(f"Invalid activity: {activity}")
+    conn = get_connection()
+    cursor = conn.execute(
+        "INSERT INTO habit_timer (activity, started_at, paused_at, accumulated_ms) VALUES (?, ?, NULL, 0)",
+        (activity, started_at)
+    )
+    conn.commit()
+    row = dict(conn.execute("SELECT * FROM habit_timer WHERE id = ?", (cursor.lastrowid,)).fetchone())
+    conn.close()
+    return row
+
+def pause_habit_timer(timer_id, paused_at):
+    """Pause a specific timer."""
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM habit_timer WHERE id = ?", (timer_id,)).fetchone()
+    if row is None:
+        conn.close()
+        raise ValueError(f"Timer {timer_id} not found")
+    if row["paused_at"] is not None:
+        conn.close()
+        raise ValueError("Timer is already paused")
+    conn.execute("UPDATE habit_timer SET paused_at = ? WHERE id = ?", (paused_at, timer_id))
+    conn.commit()
+    result = dict(conn.execute("SELECT * FROM habit_timer WHERE id = ?", (timer_id,)).fetchone())
+    conn.close()
+    return result
+
+def resume_habit_timer(timer_id, resumed_at):
+    """Resume a paused timer, accumulating the paused duration."""
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM habit_timer WHERE id = ?", (timer_id,)).fetchone()
+    if row is None:
+        conn.close()
+        raise ValueError(f"Timer {timer_id} not found")
+    if row["paused_at"] is None:
+        conn.close()
+        raise ValueError("Timer is not paused")
+    from datetime import datetime
+    paused_dt = datetime.fromisoformat(row["paused_at"])
+    resumed_dt = datetime.fromisoformat(resumed_at)
+    pause_duration_ms = (resumed_dt - paused_dt).total_seconds() * 1000
+    new_accumulated = (row["accumulated_ms"] or 0) + pause_duration_ms
+    conn.execute(
+        "UPDATE habit_timer SET paused_at = NULL, accumulated_ms = ? WHERE id = ?",
+        (new_accumulated, timer_id)
+    )
+    conn.commit()
+    result = dict(conn.execute("SELECT * FROM habit_timer WHERE id = ?", (timer_id,)).fetchone())
+    conn.close()
+    return result
+
+def stop_habit_timer(timer_id, stopped_at):
+    """Stop a specific timer, compute elapsed minutes per day, apply to habits, delete it."""
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM habit_timer WHERE id = ?", (timer_id,)).fetchone()
+    if row is None:
+        conn.close()
+        raise ValueError(f"Timer {timer_id} not found")
+
+    from datetime import datetime
+    activity = row["activity"]
+    if activity not in TIMER_ACTIVITIES:
+        conn.close()
+        raise ValueError(f"Invalid activity in timer: {activity}")
+    started_at = datetime.fromisoformat(row["started_at"])
+    accumulated_ms = row["accumulated_ms"] or 0
+
+    # If paused, add pause duration to accumulated
+    if row["paused_at"] is not None:
+        paused_dt = datetime.fromisoformat(row["paused_at"])
+        stopped_dt = datetime.fromisoformat(stopped_at)
+        accumulated_ms += (stopped_dt - paused_dt).total_seconds() * 1000
+        effective_end = paused_dt
+    else:
+        effective_end = datetime.fromisoformat(stopped_at)
+
+    total_active_ms = (effective_end - started_at).total_seconds() * 1000 - accumulated_ms
+    if total_active_ms < 0:
+        total_active_ms = 0
+
+    # Split active time across days proportionally
+    day_minutes = {}
+    day_wall = {}
+    ct = started_at
+    while ct < effective_end:
+        day_str = ct.strftime("%Y-%m-%d")
+        next_midnight = datetime.fromisoformat(day_str) + timedelta(days=1)
+        day_end = min(next_midnight, effective_end)
+        wall_ms = (day_end - ct).total_seconds() * 1000
+        day_wall[day_str] = day_wall.get(day_str, 0) + wall_ms
+        ct = day_end
+
+    total_wall_ms = sum(day_wall.values())
+    if total_wall_ms > 0:
+        for day_str, wall_ms in day_wall.items():
+            ratio = wall_ms / total_wall_ms
+            active_mn = (total_active_ms * ratio) / 60000
+            day_minutes[day_str] = int(active_mn)
+
+    # Apply to habits
+    for day_str, minutes in day_minutes.items():
+        if minutes <= 0:
+            continue
+        conn.execute(
+            "INSERT INTO habits (date) VALUES (?) ON CONFLICT(date) DO NOTHING",
+            (day_str,)
+        )
+        current = conn.execute(
+            f"SELECT {activity} FROM habits WHERE date = ?", (day_str,)
+        ).fetchone()
+        current_val = current[activity] if current and current[activity] is not None else 0
+        new_val = current_val + minutes
+        conn.execute(
+            f"UPDATE habits SET {activity} = ? WHERE date = ?",
+            (new_val, day_str)
+        )
+
+    conn.execute("DELETE FROM habit_timer WHERE id = ?", (timer_id,))
+    conn.commit()
+    conn.close()
+    return {"activity": activity, "day_minutes": day_minutes}
+
 def get_all_settings():
     conn = get_connection()
     # Ensure defaults exist

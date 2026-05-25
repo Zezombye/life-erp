@@ -37,6 +37,43 @@
             }
         }
     },
+    "habit_timer": {
+        "columns": {
+            "id": {
+                "type": "INTEGER",
+                "primary_key": true
+            },
+            "activity": {
+                "type": "TEXT"
+            },
+            "started_at": {
+                "type": "TEXT"
+            },
+            "paused_at": {
+                "type": "TEXT"
+            },
+            "accumulated_ms": {
+                "type": "REAL"
+            }
+        }
+    },
+    "workout_presets": {
+        "columns": {
+            "id": {
+                "type": "INTEGER",
+                "primary_key": true
+            },
+            "name": {
+                "type": "TEXT"
+            },
+            "content": {
+                "type": "TEXT"
+            },
+            "position": {
+                "type": "INTEGER"
+            }
+        }
+    },
     "settings": {
         "columns": {
             "key": {
@@ -57,6 +94,9 @@
             "type": {
                 "type": "TEXT"
             },
+            "e1_name": {
+                "type": "TEXT"
+            },
             "e1s1_wt": {
                 "type": "REAL"
             },
@@ -74,6 +114,21 @@
             },
             "e1s3_reps": {
                 "type": "REAL"
+            },
+            "e1s4_wt": {
+                "type": "REAL"
+            },
+            "e1s4_reps": {
+                "type": "REAL"
+            },
+            "e1s5_wt": {
+                "type": "REAL"
+            },
+            "e1s5_reps": {
+                "type": "REAL"
+            },
+            "e2_name": {
+                "type": "TEXT"
             },
             "e2s1_wt": {
                 "type": "REAL"
@@ -93,6 +148,21 @@
             "e2s3_reps": {
                 "type": "REAL"
             },
+            "e2s4_wt": {
+                "type": "REAL"
+            },
+            "e2s4_reps": {
+                "type": "REAL"
+            },
+            "e2s5_wt": {
+                "type": "REAL"
+            },
+            "e2s5_reps": {
+                "type": "REAL"
+            },
+            "e3_name": {
+                "type": "TEXT"
+            },
             "e3s1_wt": {
                 "type": "REAL"
             },
@@ -111,6 +181,21 @@
             "e3s3_reps": {
                 "type": "REAL"
             },
+            "e3s4_wt": {
+                "type": "REAL"
+            },
+            "e3s4_reps": {
+                "type": "REAL"
+            },
+            "e3s5_wt": {
+                "type": "REAL"
+            },
+            "e3s5_reps": {
+                "type": "REAL"
+            },
+            "e4_name": {
+                "type": "TEXT"
+            },
             "e4s1_wt": {
                 "type": "REAL"
             },
@@ -127,6 +212,18 @@
                 "type": "REAL"
             },
             "e4s3_reps": {
+                "type": "REAL"
+            },
+            "e4s4_wt": {
+                "type": "REAL"
+            },
+            "e4s4_reps": {
+                "type": "REAL"
+            },
+            "e4s5_wt": {
+                "type": "REAL"
+            },
+            "e4s5_reps": {
                 "type": "REAL"
             },
             "notes": {

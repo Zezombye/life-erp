@@ -1,5 +1,5 @@
 <template>
-    <div class="dashboard-panel habit-panel">
+    <div class="dashboard-panel habit-panel" :class="{'timer-active-panel': timerStore.hasActive}">
         <div class="panel-header">
             <h2 class="panel-title">Habits</h2>
             <div class="panel-header-actions">
@@ -8,6 +8,7 @@
                 <Menu id="habit-export-menu" ref="menuRef" :model="exportMenuItems" :popup="true" />
             </div>
         </div>
+        <TimerBar @quick-add="onQuickAdd" @timer-stopped="onTimerStopped" />
         <Message v-if="habitStore.error" severity="error" :closable="false">
             {{ habitStore.error }}
         </Message>
@@ -21,11 +22,14 @@ import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 import Message from 'primevue/message'
 import EditableTable from '../components/EditableTable.vue'
+import TimerBar from '../components/TimerBar.vue'
 import {useHabitStore, HABIT_COLUMNS, getCellColor as _getCellColor} from '../stores/habits'
+import {useTimerStore} from '../stores/timer'
 
 const getCellColor = _getCellColor as (row: any, col: any) => {bg: string; text: string} | null
 
 const habitStore = useHabitStore()
+const timerStore = useTimerStore()
 const menuRef = ref<InstanceType<typeof Menu>>()
 
 const exportMenuItems = [
@@ -39,10 +43,24 @@ function toggleMenu(event: Event) {
 
 onMounted(() => {
     habitStore.load()
+    timerStore.load()
 })
 
 function onCellUpdate({date, column, value}: {date: string; column: string; value: string | number | null}): void {
     habitStore.setValue(date, column, value as number | null)
+}
+
+function onQuickAdd({column, delta}: {column: string; delta: number}): void {
+    const today = new Date().toISOString().slice(0, 10)
+    const row = habitStore.rows.find(r => r.date === today)
+    const current = (row && row[column] as number | null) ?? 0
+    const newVal = Math.max(0, current + delta)
+    habitStore.setValue(today, column, newVal)
+}
+
+function onTimerStopped(): void {
+    // Reload habits to get updated values from the server
+    habitStore.load()
 }
 
 function reload(): void {
@@ -68,3 +86,10 @@ function exportData(separator: string, ext: string): void {
     URL.revokeObjectURL(url)
 }
 </script>
+
+<style lang="scss">
+.timer-active-panel {
+    border-color: #166534 !important;
+    box-shadow: 0 0 8px rgba(22, 101, 52, 0.4), inset 0 0 0 1px rgba(34, 197, 94, 0.15);
+}
+</style>

@@ -100,6 +100,105 @@ class HabitValueResource:
             resp.text = traceback.format_exc()
 
 
+class WorkoutPresetsResource:
+    def on_get(self, req, resp):
+        try:
+            presets = database.get_workout_presets()
+            resp.text = json.dumps(presets)
+        except Exception:
+            resp.status = falcon.HTTP_500
+            resp.text = traceback.format_exc()
+
+    def on_post(self, req, resp):
+        try:
+            body = json.loads(req.bounded_stream.read())
+            name = body.get("name", "Untitled")
+            content = body.get("content", "")
+            preset = database.create_workout_preset(name, content)
+            resp.text = json.dumps(preset)
+        except Exception:
+            resp.status = falcon.HTTP_500
+            resp.text = traceback.format_exc()
+
+
+class WorkoutPresetResource:
+    def on_put(self, req, resp, preset_id):
+        try:
+            body = json.loads(req.bounded_stream.read())
+            name = body.get("name")
+            content = body.get("content")
+            preset = database.update_workout_preset(int(preset_id), name, content)
+            resp.text = json.dumps(preset)
+        except ValueError as e:
+            resp.status = falcon.HTTP_404
+            resp.text = json.dumps({"error": str(e)})
+        except Exception:
+            resp.status = falcon.HTTP_500
+            resp.text = traceback.format_exc()
+
+    def on_delete(self, req, resp, preset_id):
+        try:
+            database.delete_workout_preset(int(preset_id))
+            resp.text = json.dumps({"ok": True})
+        except Exception:
+            resp.status = falcon.HTTP_500
+            resp.text = traceback.format_exc()
+
+
+class HabitTimerResource:
+    def on_get(self, req, resp):
+        """Get all active timers."""
+        try:
+            timers = database.get_habit_timers()
+            resp.text = json.dumps(timers)
+        except Exception:
+            resp.status = falcon.HTTP_500
+            resp.text = traceback.format_exc()
+
+    def on_post(self, req, resp):
+        """Start, pause, resume, or stop a timer. Body: {action, timer_id?, activity?, timestamp}"""
+        try:
+            body = json.loads(req.bounded_stream.read())
+            action = body.get("action")
+            timestamp = body.get("timestamp")
+
+            if not action or not timestamp:
+                resp.status = falcon.HTTP_400
+                resp.text = json.dumps({"error": "action and timestamp are required"})
+                return
+
+            if action == "start":
+                activity = body.get("activity")
+                if not activity:
+                    resp.status = falcon.HTTP_400
+                    resp.text = json.dumps({"error": "activity is required for start"})
+                    return
+                result = database.start_habit_timer(activity, timestamp)
+                resp.text = json.dumps(result)
+            elif action in ("pause", "resume", "stop"):
+                timer_id = body.get("timer_id")
+                if not timer_id:
+                    resp.status = falcon.HTTP_400
+                    resp.text = json.dumps({"error": "timer_id is required"})
+                    return
+                if action == "pause":
+                    result = database.pause_habit_timer(timer_id, timestamp)
+                elif action == "resume":
+                    result = database.resume_habit_timer(timer_id, timestamp)
+                else:
+                    result = database.stop_habit_timer(timer_id, timestamp)
+                resp.text = json.dumps(result)
+            else:
+                resp.status = falcon.HTTP_400
+                resp.text = json.dumps({"error": f"Unknown action: {action}"})
+        except ValueError as e:
+            resp.status = falcon.HTTP_400
+            resp.text = json.dumps({"error": str(e)})
+        except Exception:
+            resp.status = falcon.HTTP_500
+            resp.text = traceback.format_exc()
+
+
 class SettingsResource:
     def on_get(self, req, resp):
         try:
@@ -523,9 +622,12 @@ app = falcon.App(cors_enable=True)
 app.add_route("/api/health", HealthResource())
 app.add_route("/api/habits", HabitsResource())
 app.add_route("/api/habits/value", HabitValueResource())
+app.add_route("/api/habits/timer", HabitTimerResource())
 app.add_route("/api/settings", SettingsResource())
 app.add_route("/api/workouts", WorkoutsResource())
 app.add_route("/api/workouts/value", WorkoutValueResource())
+app.add_route("/api/workout-presets", WorkoutPresetsResource())
+app.add_route("/api/workout-presets/{preset_id}", WorkoutPresetResource())
 app.add_route("/api/chores", ChoresResource())
 app.add_route("/api/chores/{chore_id}", ChoreResource())
 app.add_route("/api/chores/{chore_id}/done", ChoreDoneResource())

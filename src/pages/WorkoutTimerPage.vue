@@ -2,13 +2,50 @@
     <div class="wt-page">
         <!-- Editor mode -->
         <div v-if="!running" class="wt-editor">
-            <Textarea v-model="workoutText" class="wt-textarea" :spellcheck="false" placeholder='Title "My Workout"
+            <!-- Preset tabs -->
+            <div class="wt-preset-bar">
+                <div class="wt-preset-tabs">
+                    <button v-for="p in presets" :key="p.id" class="wt-preset-tab" :class="{active: activePresetId === p.id}" @click="selectPreset(p)">
+                        {{ p.name }}
+                    </button>
+                </div>
+                <div class="wt-preset-actions">
+                    <button class="wt-icon-btn" @click="newPreset" title="New preset">+</button>
+                    <button v-if="activePresetId" class="wt-icon-btn" @click="savePreset" title="Save">💾</button>
+                    <button v-if="activePresetId && presets.length > 1" class="wt-icon-btn danger" @click="removePreset" title="Delete">🗑</button>
+                </div>
+            </div>
+
+            <div class="wt-editor-body">
+                <!-- Text editor -->
+                <Textarea v-model="workoutText" class="wt-textarea" :spellcheck="false" placeholder='Title "My Workout"
 
 "Exercise" 10 30s 60 3x
 Rest 2mn
 "Other" 15 45s 60 countup' autoResize />
+
+                <!-- Block preview -->
+                <div class="wt-block-preview">
+                    <div class="wt-blocks-title">{{ workoutTitle }}</div>
+                    <div class="wt-blocks">
+                        <div v-for="(phase, i) in phases" :key="i" class="wt-block" :class="'wt-block--' + phase.type">
+                            <div class="wt-block-header">
+                                <span class="wt-block-type">{{ phase.type }}</span>
+                                <span class="wt-block-time">{{ fmtTime(phase.duration) }}</span>
+                            </div>
+                            <div class="wt-block-name">
+                                {{ phase.title }}
+                                <template v-if="phase.totalSets > 0">
+                                    <span class="wt-block-set">{{ phase.setNum }}/{{ phase.totalSets }}</span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="wt-blocks-summary">{{ phaseSummary }}</div>
+                </div>
+            </div>
+
             <div class="wt-editor-bar">
-                <span class="wt-summary">{{ phaseSummary }}</span>
                 <Button label="START" icon="pi pi-play" severity="success" size="large" @click="startTimer" :disabled="phases.length === 0" />
             </div>
         </div>
@@ -44,12 +81,12 @@ Rest 2mn
 </template>
 
 <script setup lang="ts">
-import {ref, computed, watch, onUnmounted} from 'vue'
+import {ref, computed, watch, onMounted, onUnmounted} from 'vue'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import ProgressBar from 'primevue/progressbar'
-
-const STORAGE_KEY = 'life-erp-workout-timer'
+import {fetchWorkoutPresets, createWorkoutPreset, updateWorkoutPreset, deleteWorkoutPreset} from '../services/api'
+import type {WorkoutPreset} from '../services/api'
 
 const DEFAULT_TEXT = `Title "Pull day"
 
@@ -59,10 +96,70 @@ Rest 2mn30
 "Farmer's hold" 15 60 75 3x countup
 "Farmer's hold" 15 30 75 countup`
 
-// ── State ──
-const workoutText = ref(localStorage.getItem(STORAGE_KEY) || DEFAULT_TEXT)
-watch(workoutText, (v) => localStorage.setItem(STORAGE_KEY, v))
+// ── Presets ──
+const presets = ref<WorkoutPreset[]>([])
+const activePresetId = ref<number | null>(null)
+const workoutText = ref('')
 
+onMounted(async () => {
+    try {
+        presets.value = await fetchWorkoutPresets()
+        if (presets.value.length > 0) {
+            selectPreset(presets.value[0]!)
+        } else {
+            // Create initial default preset
+            const p = await createWorkoutPreset('Pull day', DEFAULT_TEXT)
+            presets.value = [p]
+            selectPreset(p)
+        }
+    } catch {
+        workoutText.value = DEFAULT_TEXT
+    }
+})
+
+function selectPreset(p: WorkoutPreset) {
+    // Auto-save current preset before switching
+    if (activePresetId.value && activePresetId.value !== p.id) {
+        const current = presets.value.find(x => x.id === activePresetId.value)
+        if (current && current.content !== workoutText.value) {
+            const parsed = parseWorkout(workoutText.value)
+            updateWorkoutPreset(current.id, parsed.title, workoutText.value).then(updated => {
+                const idx = presets.value.findIndex(x => x.id === updated.id)
+                if (idx !== -1) presets.value[idx] = updated
+            }).catch(() => { })
+        }
+    }
+    activePresetId.value = p.id
+    workoutText.value = p.content
+}
+
+async function newPreset() {
+    const p = await createWorkoutPreset('New Workout', 'Title "New Workout"\n\n')
+    presets.value.push(p)
+    selectPreset(p)
+}
+
+async function savePreset() {
+    if (!activePresetId.value) return
+    const parsed = parseWorkout(workoutText.value)
+    const updated = await updateWorkoutPreset(activePresetId.value, parsed.title, workoutText.value)
+    const idx = presets.value.findIndex(x => x.id === updated.id)
+    if (idx !== -1) presets.value[idx] = updated
+}
+
+async function removePreset() {
+    if (!activePresetId.value) return
+    await deleteWorkoutPreset(activePresetId.value)
+    presets.value = presets.value.filter(x => x.id !== activePresetId.value)
+    if (presets.value.length > 0) {
+        selectPreset(presets.value[0]!)
+    } else {
+        activePresetId.value = null
+        workoutText.value = ''
+    }
+}
+
+// ── Timer state ──
 const running = ref(false)
 const paused = ref(false)
 const phaseIndex = ref(0)
@@ -381,16 +478,99 @@ onUnmounted(() => {
     flex-direction: column;
 }
 
+// ── Presets bar ──
+.wt-preset-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+    flex-shrink: 0;
+}
+
+.wt-preset-tabs {
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    flex: 1;
+    min-width: 0;
+}
+
+.wt-preset-tab {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid #3f3f46;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+    background: #1e1e1e;
+    color: #a1a1aa;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+
+    &:hover {
+        background: #27272a;
+    }
+
+    &.active {
+        background: #27272a;
+        color: #fafafa;
+        border-color: #52525b;
+    }
+}
+
+.wt-preset-actions {
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.wt-icon-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #3f3f46;
+    border-radius: 4px;
+    background: #27272a;
+    color: #a1a1aa;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+
+    &:hover {
+        background: #3f3f46;
+        color: #fafafa;
+    }
+
+    &.danger:hover {
+        background: #7f1d1d;
+        color: #fca5a5;
+    }
+}
+
+// ── Editor ──
 .wt-editor {
     flex: 1;
     display: flex;
     flex-direction: column;
     padding: 0.75rem;
     gap: 0.5rem;
+    min-height: 0;
+}
+
+.wt-editor-body {
+    flex: 1;
+    display: flex;
+    gap: 0.75rem;
+    min-height: 0;
 }
 
 .wt-textarea {
     flex: 1;
+    min-width: 0;
     background: #18181b;
     color: #e4e4e7;
     border: 1px solid #27272a;
@@ -411,17 +591,105 @@ onUnmounted(() => {
     }
 }
 
-.wt-editor-bar {
+// ── Block preview ──
+.wt-block-preview {
+    flex: 1;
+    min-width: 0;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 0.375rem;
+    overflow-y: auto;
+    padding: 0.5rem;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 0.5rem;
 }
 
-.wt-summary {
-    font-size: 0.8125rem;
+.wt-blocks-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #fafafa;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid #27272a;
+}
+
+.wt-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.wt-block {
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border-left: 3px solid;
+}
+
+.wt-block--prepare {
+    background: rgba(180, 83, 9, 0.15);
+    border-left-color: #b45309;
+}
+
+.wt-block--work {
+    background: rgba(21, 128, 61, 0.15);
+    border-left-color: #15803d;
+}
+
+.wt-block--rest {
+    background: rgba(29, 78, 216, 0.15);
+    border-left-color: #1d4ed8;
+}
+
+.wt-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.wt-block-type {
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     color: #71717a;
 }
 
+.wt-block-time {
+    font-size: 0.7rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #d4d4d8;
+}
+
+.wt-block-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #e4e4e7;
+}
+
+.wt-block-set {
+    font-size: 0.625rem;
+    color: #71717a;
+    margin-left: 0.25rem;
+}
+
+.wt-blocks-summary {
+    font-size: 0.75rem;
+    color: #71717a;
+    padding-top: 0.25rem;
+    border-top: 1px solid #27272a;
+    margin-top: auto;
+}
+
+.wt-editor-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+// ── Timer mode (unchanged) ──
 .wt-timer {
     flex: 1;
     display: flex;

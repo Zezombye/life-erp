@@ -5,7 +5,7 @@ import type {WorkoutRow, WorkoutColumn, CellColor} from '../types'
 
 const RETRY_INTERVAL = 3000
 
-// Generate columns for exercises 1-4, sets 1-3
+// Generate columns for exercises 1-4, sets 1-5
 function buildColumns(): WorkoutColumn[] {
     const cols: WorkoutColumn[] = [
         {key: 'date', label: 'Date', editable: false, width: 190, colType: 'date'},
@@ -13,7 +13,14 @@ function buildColumns(): WorkoutColumn[] {
     ]
 
     for (let ex = 1; ex <= 4; ex++) {
-        for (let set = 1; set <= 3; set++) {
+        cols.push({
+            key: `e${ex}_name`,
+            label: `E${ex}`,
+            editable: true,
+            width: 72,
+            colType: 'text',
+        })
+        for (let set = 1; set <= 5; set++) {
             cols.push({
                 key: `e${ex}s${set}_wt`,
                 label: `${ex}-${set} wt`,

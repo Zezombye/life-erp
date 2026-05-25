@@ -22,6 +22,36 @@ export async function setHabitValue(date: string, column: string, value: number 
     return res.json()
 }
 
+export interface TimerState {
+    id: number
+    activity: string
+    started_at: string
+    paused_at: string | null
+    accumulated_ms: number
+}
+
+export async function fetchHabitTimers(): Promise<TimerState[]> {
+    const res = await fetch(`${API_BASE}/api/habits/timer`)
+    if (!res.ok) throw new Error(`Failed to fetch timers: ${res.status}`)
+    return res.json()
+}
+
+export async function postHabitTimer(action: string, timestamp: string, opts?: {activity?: string; timer_id?: number}): Promise<any> {
+    const body: any = {action, timestamp}
+    if (opts?.activity) body.activity = opts.activity
+    if (opts?.timer_id) body.timer_id = opts.timer_id
+    const res = await fetch(`${API_BASE}/api/habits/timer`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({error: `HTTP ${res.status}`}))
+        throw new Error(err.error || `Failed: ${res.status}`)
+    }
+    return res.json()
+}
+
 export async function fetchSettings(): Promise<Settings> {
     const res = await fetch(`${API_BASE}/api/settings`)
     if (!res.ok) throw new Error(`Failed to fetch settings: ${res.status}`)
@@ -50,8 +80,47 @@ export async function setWorkoutValue(date: string, column: string, value: strin
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({date, column, value}),
     })
-    if (!res.ok) throw new Error(`Failed to set workout value: ${res.status}`)
+    if (!res.ok) throw new Error(`Failed to set value: ${res.status}`)
     return res.json()
+}
+
+// ── Workout Presets ──
+export interface WorkoutPreset {
+    id: number
+    name: string
+    content: string
+    position: number
+}
+
+export async function fetchWorkoutPresets(): Promise<WorkoutPreset[]> {
+    const res = await fetch(`${API_BASE}/api/workout-presets`)
+    if (!res.ok) throw new Error(`Failed to fetch presets: ${res.status}`)
+    return res.json()
+}
+
+export async function createWorkoutPreset(name: string, content: string): Promise<WorkoutPreset> {
+    const res = await fetch(`${API_BASE}/api/workout-presets`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, content}),
+    })
+    if (!res.ok) throw new Error(`Failed to create preset: ${res.status}`)
+    return res.json()
+}
+
+export async function updateWorkoutPreset(id: number, name: string, content: string): Promise<WorkoutPreset> {
+    const res = await fetch(`${API_BASE}/api/workout-presets/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, content}),
+    })
+    if (!res.ok) throw new Error(`Failed to update preset: ${res.status}`)
+    return res.json()
+}
+
+export async function deleteWorkoutPreset(id: number): Promise<void> {
+    const res = await fetch(`${API_BASE}/api/workout-presets/${id}`, {method: 'DELETE'})
+    if (!res.ok) throw new Error(`Failed to delete preset: ${res.status}`)
 }
 
 export async function fetchChores(): Promise<Chore[]> {

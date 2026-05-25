@@ -129,7 +129,49 @@ function startEdit(td: CellTd): void {
 function onEditKey(e: KeyboardEvent): void {
     if (e.key === 'Enter') commitEdit()
     else if (e.key === 'Escape') cancelEdit()
-    else if (e.key === 'Tab') {e.preventDefault(); commitEdit()}
+    else if (e.key === 'Tab') {
+        e.preventDefault()
+        const td = editTd!
+        const reverse = e.shiftKey
+        commitEdit()
+        tabToNext(td, reverse)
+    }
+}
+
+function tabToNext(fromTd: CellTd, reverse: boolean): void {
+    const tr = fromTd.parentElement as HTMLTableRowElement
+    const tds = Array.from(tr.querySelectorAll('td')) as CellTd[]
+    const idx = tds.indexOf(fromTd)
+    const editableTds = tds.filter(t => t._editable)
+    const curIdx = editableTds.indexOf(fromTd)
+
+    if (!reverse) {
+        // Try next editable cell in same row
+        if (curIdx >= 0 && curIdx < editableTds.length - 1) {
+            startEdit(editableTds[curIdx + 1]!)
+            return
+        }
+        // Move to next visible row, first editable cell
+        const poolIdx = poolTrs.indexOf(tr)
+        for (let i = poolIdx + 1; i < POOL_SIZE; i++) {
+            if (poolTrs[i]!.style.display === 'none') break
+            const nextEditable = poolValueTds[i]!.find(t => t._editable)
+            if (nextEditable) {startEdit(nextEditable); return }
+        }
+    } else {
+        // Try previous editable cell in same row
+        if (curIdx > 0) {
+            startEdit(editableTds[curIdx - 1]!)
+            return
+        }
+        // Move to previous visible row, last editable cell
+        const poolIdx = poolTrs.indexOf(tr)
+        for (let i = poolIdx - 1; i >= 0; i--) {
+            if (poolTrs[i]!.style.display === 'none') break
+            const prevEditables = poolValueTds[i]!.filter(t => t._editable)
+            if (prevEditables.length > 0) {startEdit(prevEditables[prevEditables.length - 1]!); return }
+        }
+    }
 }
 
 function commitEdit(): void {
@@ -411,3 +453,130 @@ watch(() => props.rows, () => {
     }
 }, {deep: true})
 </script>
+
+<style lang="scss">
+.habit-table-outer {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+
+.habit-table-wrapper {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex: 1;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+.vscroll-track {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    background: rgba(24, 24, 27, 0.6);
+    z-index: 2;
+}
+
+.vscroll-thumb {
+    position: absolute;
+    left: 1px;
+    right: 1px;
+    background: #3f3f46;
+    border-radius: 4px;
+    min-height: 20px;
+    cursor: grab;
+    transition: background 0.1s;
+
+    &:hover,
+    &:active {
+        background: #52525b;
+    }
+}
+
+.habit-table {
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    table-layout: fixed;
+}
+
+.habit-th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #1e1e1e;
+    color: #a1a1aa;
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid #3f3f46;
+    border-right: 1px solid #2a2a2e;
+    user-select: none;
+
+    &:last-child {
+        border-right: none;
+    }
+}
+
+.habit-row {
+    &:hover {
+        background: #27272a;
+    }
+
+    border-bottom: 1px solid #27272a;
+}
+
+.habit-cell {
+    padding: 0;
+    height: 2.25rem;
+    white-space: nowrap;
+    border-right: 1px solid #2a2a2e;
+
+    &:last-child {
+        border-right: none;
+    }
+
+    &.date-cell {
+        padding: 0 0.75rem;
+        color: #a1a1aa;
+        font-weight: 500;
+        font-size: 0.8rem;
+    }
+
+    &.editable {
+        cursor: cell;
+    }
+
+    &.editing {
+        padding: 0;
+    }
+}
+
+.cell-display {
+    display: block;
+    padding: 0 0.75rem;
+    line-height: 2.25rem;
+    min-width: 3rem;
+}
+
+.cell-input {
+    width: 100%;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    background: #18181b;
+    color: #fafafa;
+    border: 1px solid #3b82f6;
+    outline: none;
+    font-size: 0.875rem;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    box-sizing: border-box;
+}
+</style>
