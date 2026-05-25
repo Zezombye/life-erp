@@ -1,67 +1,67 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import {defineStore} from 'pinia'
+import {ref} from 'vue'
 import {
     fetchTodos, createTodo, updateTodo, setTodoStatus,
     fetchTodoMessages, createTodoMessage, updateTodoMessage, deleteTodoMessage,
-} from '../services/api.js'
+} from '../services/api'
+import type {Todo, TodoMessage} from '../types'
 
 export const useTodoStore = defineStore('todos', () => {
-    const todos = ref([])
+    const todos = ref<Todo[]>([])
     const loading = ref(false)
-    const error = ref(null)
+    const error = ref<string | null>(null)
 
-    // Messages cache: { [todoId]: Message[] }
-    const messages = ref({})
+    const messages = ref<Record<number, TodoMessage[]>>({})
 
-    async function load() {
+    async function load(): Promise<void> {
         loading.value = true
         error.value = null
         try {
             todos.value = await fetchTodos()
-        } catch (e) {
-            error.value = e.message
+        } catch (e: unknown) {
+            error.value = (e as Error).message
         } finally {
             loading.value = false
         }
     }
 
-    async function add(title) {
+    async function add(title: string): Promise<Todo> {
         const row = await createTodo(title)
         todos.value.unshift(row)
         return row
     }
 
-    async function rename(id, title) {
+    async function rename(id: number, title: string): Promise<Todo> {
         const row = await updateTodo(id, title)
         const idx = todos.value.findIndex(t => t.id === id)
         if (idx !== -1) todos.value[idx] = row
         return row
     }
 
-    async function close(id) {
+    async function close(id: number): Promise<void> {
         const row = await setTodoStatus(id, 'closed')
         const idx = todos.value.findIndex(t => t.id === id)
         if (idx !== -1) todos.value[idx] = row
     }
 
-    async function reopen(id) {
+    async function reopen(id: number): Promise<void> {
         const row = await setTodoStatus(id, 'open')
         const idx = todos.value.findIndex(t => t.id === id)
         if (idx !== -1) todos.value[idx] = row
     }
 
-    async function loadMessages(todoId) {
+    async function loadMessages(todoId: number): Promise<void> {
         messages.value[todoId] = await fetchTodoMessages(todoId)
     }
 
-    async function addMessage(todoId, content) {
+    async function addMessage(todoId: number, content: string): Promise<TodoMessage> {
         const msg = await createTodoMessage(todoId, content)
         if (!messages.value[todoId]) messages.value[todoId] = []
         messages.value[todoId].push(msg)
         return msg
     }
 
-    async function editMessage(todoId, messageId, content) {
+    async function editMessage(todoId: number, messageId: number, content: string): Promise<TodoMessage> {
         const msg = await updateTodoMessage(todoId, messageId, content)
         const arr = messages.value[todoId]
         if (arr) {
@@ -71,7 +71,7 @@ export const useTodoStore = defineStore('todos', () => {
         return msg
     }
 
-    async function removeMessage(todoId, messageId) {
+    async function removeMessage(todoId: number, messageId: number): Promise<void> {
         await deleteTodoMessage(todoId, messageId)
         const arr = messages.value[todoId]
         if (arr) {

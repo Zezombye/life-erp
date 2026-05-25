@@ -5,19 +5,18 @@ import Aura from '@primeuix/themes/aura';
 import ToastService from 'primevue/toastservice';
 import Tooltip from "primevue/tooltip";
 
-// TODO update to match current KC Theme
 const MyPreset = definePreset(Aura);
 
 export default defineBoot(({app}) => {
+    document.documentElement.classList.add('app-dark')
     app.use(PrimeVue, {
         theme: {
             preset: MyPreset,
             options: {
-                darkModeSelector: '.never-dark-mode'
+                darkModeSelector: '.app-dark'
             }
         }
     });
     app.use(ToastService);
     app.directive('tooltip', Tooltip);
-    // app.component('Toast', Toast);
 })

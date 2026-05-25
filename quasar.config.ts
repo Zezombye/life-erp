@@ -1,7 +1,7 @@
 // Configuration for your app
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
-import { defineConfig } from '#q-app/wrappers'
+import {defineConfig} from '#q-app/wrappers'
 
 export default defineConfig((/* ctx */) => {
     return {
@@ -25,7 +25,7 @@ export default defineConfig((/* ctx */) => {
         extras: [
             // 'ionicons-v4',
             // 'mdi-v7',
-            // 'fontawesome-v6',
+            'fontawesome-v6',
             // 'eva-icons',
             // 'themify',
             // 'line-awesome',
@@ -48,7 +48,7 @@ export default defineConfig((/* ctx */) => {
             },
 
 
-            vueRouterMode: 'hash', // available values: 'hash', 'history'
+            vueRouterMode: 'history', // available values: 'hash', 'history'
             // vueRouterBase,
             // vueDevtools,
             // vueOptionsAPI: false,
@@ -70,10 +70,10 @@ export default defineConfig((/* ctx */) => {
             vitePlugins: [
                 ['vite-plugin-checker', {
                     eslint: {
-                        lintCommand: 'eslint -c ./eslint.config.js "./src*/**/*.{js,mjs,cjs,vue}"',
+                        lintCommand: 'eslint -c ./eslint.config.js "./src*/**/*.{ts,js,mjs,cjs,vue}"',
                         useFlatConfig: true
                     }
-                }, { server: false }],
+                }, {server: false}],
                 ["unocss/vite", {}],
 
             ]
@@ -81,7 +81,7 @@ export default defineConfig((/* ctx */) => {
 
         // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#devserver
         devServer: {
-            // https: true,
+            https: true,
             open: true // opens browser window automatically
         },
 

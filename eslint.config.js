@@ -2,8 +2,9 @@ import js from '@eslint/js'
 import globals from 'globals'
 import pluginVue from 'eslint-plugin-vue'
 import pluginQuasar from '@quasar/app-vite/eslint'
+import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
 
-export default [
+export default defineConfigWithVueTs(
     {
         /**
          * Ignore the following files.
@@ -33,6 +34,19 @@ export default [
      */
     ...pluginVue.configs['flat/essential'],
 
+
+    {
+        files: ['**/*.ts', '**/*.vue'],
+        rules: {
+            '@typescript-eslint/consistent-type-imports': [
+                'error',
+                { prefer: 'type-imports' }
+            ],
+        }
+    },
+    // https://github.com/vuejs/eslint-config-typescript
+    vueTsConfigs.recommendedTypeChecked,
+
     {
         languageOptions: {
             ecmaVersion: 'latest',
@@ -52,19 +66,35 @@ export default [
 
         // add your custom rules here
         rules: {
-            'prefer-promise-reject-errors': 'off',
 
+            'prefer-promise-reject-errors': 'off',
+            "@typescript-eslint/no-unused-vars": "off",
+            "@typescript-eslint/no-explicit-any": "off",
+            "no-useless-escape": "off",
+            "no-empty": "off",
+            "vue/block-lang": "off",
+            "prefer-const": "off",
+            "max-len": "off",
+            "vue/max-len": "off",
+            "eqeqeq": "error",
+            "@typescript-eslint/no-misused-promises": [
+                "error",
+                { checksVoidReturn: false },
+            ],
+            "vue/multi-word-component-names": "off",
+            "@typescript-eslint/no-floating-promises": "off",
+            "no-control-regex": "off",
             // allow debugger during development only
             'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off'
         }
     },
 
     {
-        files: ['src-pwa/custom-service-worker.js'],
+        files: ['src-pwa/custom-service-worker.ts'],
         languageOptions: {
             globals: {
                 ...globals.serviceworker
             }
         }
     }
-]
+)

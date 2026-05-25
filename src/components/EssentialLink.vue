@@ -1,44 +1,33 @@
 <template>
-  <q-item
-    clickable
-    tag="a"
-    target="_blank"
-    :href="props.link"
-  >
-    <q-item-section
-      v-if="props.icon"
-      avatar
-    >
-      <q-icon :name="props.icon" />
-    </q-item-section>
-
-    <q-item-section>
-      <q-item-label>{{ props.title }}</q-item-label>
-      <q-item-label caption>{{ props.caption }}</q-item-label>
-    </q-item-section>
-  </q-item>
+    <a :href="props.link" target="_blank" class="flex items-center gap-2 p-2 hover:bg-zinc-800 rounded">
+        <i v-if="props.icon" :class="'pi pi-' + props.icon" />
+        <div>
+            <div>{{ props.title }}</div>
+            <div class="text-sm opacity-60">{{ props.caption }}</div>
+        </div>
+    </a>
 </template>
 
-<script setup>
+<script setup lang="ts">
 const props = defineProps({
-  title: {
-    type: String,
-    required: true
-  },
+    title: {
+        type: String,
+        required: true
+    },
 
-  caption: {
-    type: String,
-    default: ''
-  },
+    caption: {
+        type: String,
+        default: ''
+    },
 
-  link: {
-    type: String,
-    default: '#'
-  },
+    link: {
+        type: String,
+        default: '#'
+    },
 
-  icon: {
-    type: String,
-    default: ''
-  }
+    icon: {
+        type: String,
+        default: ''
+    }
 })
 </script>

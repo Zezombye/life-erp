@@ -496,7 +496,6 @@ class TaskLogStreamResource:
     def on_get(self, req, resp):
         resp.content_type = "text/event-stream"
         resp.cache_control = ["no-cache"]
-        resp.set_header("Connection", "keep-alive")
         resp.set_header("X-Accel-Buffering", "no")
         resp.set_header("Access-Control-Allow-Origin", "*")
 

@@ -1,55 +1,56 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { fetchHabits, setHabitValue } from '../services/api.js'
-import { useSettingsStore } from './settings.js'
+import {defineStore} from 'pinia'
+import {ref} from 'vue'
+import {fetchHabits, setHabitValue} from '../services/api'
+import {useSettingsStore} from './settings'
+import type {HabitRow, HabitColumn, CellColor} from '../types'
 
 const RETRY_INTERVAL = 3000
 
 const HABIT_KEYS = ['business', 'reading_watching', 'misc', 'girls_family', 'mma']
 
-export const HABIT_COLUMNS = [
-    { key: 'date', label: 'Date', editable: false, width: 190 },
-    { key: 'weight', label: 'Weight', editable: true, width: 51 },
-    { key: 'job', label: 'Job', editable: true, width: 51, displayFormat: 'minutes' },
-    { key: 'workout', label: 'Workout', editable: true, width: 64, displayFormat: 'percentage', colorGroup: 'percentage' },
-    { key: 'business', label: 'Business', editable: true, width: 69, displayFormat: 'minutes', colorGroup: 'habit' },
-    { key: 'reading_watching', label: 'Reading', editable: true, width: 69, displayFormat: 'minutes', colorGroup: 'habit' },
-    { key: 'misc', label: 'Misc', editable: true, width: 69, displayFormat: 'minutes', colorGroup: 'habit' },
-    { key: 'girls_family', label: 'Girls', editable: true, width: 69, displayFormat: 'minutes', colorGroup: 'habit' },
-    { key: 'mma', label: 'MMA', editable: true, width: 69, displayFormat: 'minutes', colorGroup: 'habit' },
-    { key: 'total', label: 'Total', editable: false, width: 72, displayFormat: 'percentage', colorGroup: 'percentage' },
-    { key: 'total_hours', label: 'Hours', editable: false, width: 77, displayFormat: 'hours' },
+export const HABIT_COLUMNS: HabitColumn[] = [
+    {key: 'date', label: 'Date', editable: false, width: 190},
+    {key: 'weight', label: 'Weight', editable: true, width: 51},
+    {key: 'job', label: 'Job', editable: true, width: 51, displayFormat: 'minutes'},
+    {key: 'workout', label: 'Workout', editable: true, width: 64, displayFormat: 'percentage', colorGroup: 'percentage'},
+    {key: 'business', label: 'Business', editable: true, width: 69, displayFormat: 'minutes', colorGroup: 'habit'},
+    {key: 'reading_watching', label: 'Reading', editable: true, width: 69, displayFormat: 'minutes', colorGroup: 'habit'},
+    {key: 'misc', label: 'Misc', editable: true, width: 69, displayFormat: 'minutes', colorGroup: 'habit'},
+    {key: 'girls_family', label: 'Girls', editable: true, width: 69, displayFormat: 'minutes', colorGroup: 'habit'},
+    {key: 'mma', label: 'MMA', editable: true, width: 69, displayFormat: 'minutes', colorGroup: 'habit'},
+    {key: 'total', label: 'Total', editable: false, width: 72, displayFormat: 'percentage', colorGroup: 'percentage'},
+    {key: 'total_hours', label: 'Hours', editable: false, width: 77, displayFormat: 'hours'},
 ]
 
 // 0=red, <25=orange, <50=yellow, <75=green, <100=blue, >=100=purple
-const COLOR_SCALE = [
-    { max: 0, bg: '#991b1b', text: '#fca5a5' },     // red
-    { max: 25, bg: '#92400e', text: '#fcd34d' },     // orange
-    { max: 50, bg: '#854d0e', text: '#fef08a' },     // yellow
-    { max: 75, bg: '#166534', text: '#86efac' },     // green
-    { max: 100, bg: '#1e3a5f', text: '#93c5fd' },    // blue
-    { max: Infinity, bg: '#581c87', text: '#d8b4fe' }, // purple
+const COLOR_SCALE: CellColor[] = [
+    {max: 0, bg: '#991b1b', text: '#fca5a5'},     // red
+    {max: 25, bg: '#92400e', text: '#fcd34d'},     // orange
+    {max: 50, bg: '#854d0e', text: '#fef08a'},     // yellow
+    {max: 75, bg: '#166534', text: '#86efac'},     // green
+    {max: 100, bg: '#1e3a5f', text: '#93c5fd'},    // blue
+    {max: Infinity, bg: '#581c87', text: '#d8b4fe'}, // purple
 ]
 
-export function getColorForPercent(pct) {
+export function getColorForPercent(pct: number | null | undefined): CellColor | null {
     if (pct === null || pct === undefined) return null
     for (const level of COLOR_SCALE) {
-        if (pct <= level.max) return level
+        if (pct <= level.max!) return level
     }
-    return COLOR_SCALE[COLOR_SCALE.length - 1]
+    return COLOR_SCALE[COLOR_SCALE.length - 1]!
 }
 
-export function getCellColor(row, col) {
+export function getCellColor(row: HabitRow, col: HabitColumn): CellColor | null {
     if (!col.colorGroup) return null
 
     if (col.colorGroup === 'percentage') {
-        return getColorForPercent(row[col.key])
+        return getColorForPercent(row[col.key] as number | null)
     }
 
     if (col.colorGroup === 'habit') {
         const settingsStore = useSettingsStore()
         const workMn = settingsStore.getNumber('work_mn', 300)
-        const sum = HABIT_KEYS.reduce((s, k) => s + (row[k] || 0), 0)
+        const sum = HABIT_KEYS.reduce((s, k) => s + ((row[k] as number) || 0), 0)
         const pct = (sum / workMn) * 100
         return getColorForPercent(pct)
     }
@@ -57,17 +58,17 @@ export function getCellColor(row, col) {
     return null
 }
 
-export function getDateColor(dateStr) {
+export function getDateColor(dateStr: string): CellColor | null {
     if (!dateStr) return null
     const d = new Date(dateStr + 'T00:00:00')
     const day = d.getDay()
     const isWeekend = day === 0 || day === 6
     const isHoliday = isFrenchHoliday(d)
-    if (isWeekend || isHoliday) return { bg: '#1c1c1e', text: '#71717a' }
-    return { bg: '#27272a', text: '#a1a1aa' }
+    if (isWeekend || isHoliday) return {bg: '#1c1c1e', text: '#71717a'}
+    return {bg: '#27272a', text: '#a1a1aa'}
 }
 
-function isFrenchHoliday(d) {
+function isFrenchHoliday(d: Date): boolean {
     const m = d.getMonth() + 1
     const day = d.getDate()
     const y = d.getFullYear()
@@ -91,7 +92,7 @@ function isFrenchHoliday(d) {
     return false
 }
 
-function computeEaster(year) {
+function computeEaster(year: number): Date {
     // Anonymous Gregorian algorithm
     const a = year % 19
     const b = Math.floor(year / 100)
@@ -111,40 +112,40 @@ function computeEaster(year) {
 }
 
 export const useHabitStore = defineStore('habits', () => {
-    const rows = ref([])
+    const rows = ref<HabitRow[]>([])
     const loading = ref(false)
-    const error = ref(null)
-    let retryTimer = null
+    const error = ref<string | null>(null)
+    let retryTimer: ReturnType<typeof setInterval> | null = null
 
-    function scheduleRetry() {
+    function scheduleRetry(): void {
         if (retryTimer) return
         retryTimer = setInterval(() => {
             load()
         }, RETRY_INTERVAL)
     }
 
-    function clearRetry() {
+    function clearRetry(): void {
         if (retryTimer) {
             clearInterval(retryTimer)
             retryTimer = null
         }
     }
 
-    async function load() {
+    async function load(): Promise<void> {
         loading.value = true
         error.value = null
         try {
             rows.value = await fetchHabits()
             clearRetry()
-        } catch (e) {
-            error.value = e.message
+        } catch (e: unknown) {
+            error.value = (e as Error).message
             scheduleRetry()
         } finally {
             loading.value = false
         }
     }
 
-    async function setValue(date, column, value) {
+    async function setValue(date: string, column: string, value: number | null): Promise<void> {
         // Optimistic update
         const row = rows.value.find(r => r.date === date)
         if (row) {
@@ -161,12 +162,12 @@ export const useHabitStore = defineStore('habits', () => {
                 // New row (date didn't exist before)
                 rows.value.unshift(updatedRow)
             }
-        } catch (e) {
-            error.value = e.message
+        } catch (e: unknown) {
+            error.value = (e as Error).message
             // Reload to get consistent state
             await load()
         }
     }
 
-    return { rows, loading, error, load, setValue }
+    return {rows, loading, error, load, setValue}
 })
