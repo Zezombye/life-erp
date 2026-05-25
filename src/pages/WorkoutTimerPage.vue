@@ -85,8 +85,14 @@ import {ref, computed, watch, onMounted, onUnmounted} from 'vue'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import ProgressBar from 'primevue/progressbar'
-import {fetchWorkoutPresets, createWorkoutPreset, updateWorkoutPreset, deleteWorkoutPreset} from '../services/api'
-import type {WorkoutPreset} from '../services/api'
+import * as localDb from '../services/local-db'
+
+interface WorkoutPreset {
+    id: string
+    name: string
+    content: string
+    position: number
+}
 
 const DEFAULT_TEXT = `Title "Pull day"
 
@@ -98,17 +104,19 @@ Rest 2mn30
 
 // ── Presets ──
 const presets = ref<WorkoutPreset[]>([])
-const activePresetId = ref<number | null>(null)
+const activePresetId = ref<string | null>(null)
 const workoutText = ref('')
 
-onMounted(async () => {
+onMounted(() => {
     try {
-        presets.value = await fetchWorkoutPresets()
+        presets.value = localDb.getAll('workout_presets')
+        presets.value.sort((a, b) => a.position - b.position)
         if (presets.value.length > 0) {
             selectPreset(presets.value[0]!)
         } else {
-            // Create initial default preset
-            const p = await createWorkoutPreset('Pull day', DEFAULT_TEXT)
+            const id = crypto.randomUUID()
+            localDb.upsert('workout_presets', {id}, {name: 'Pull day', content: DEFAULT_TEXT, position: 0})
+            const p: WorkoutPreset = {id, name: 'Pull day', content: DEFAULT_TEXT, position: 0}
             presets.value = [p]
             selectPreset(p)
         }
@@ -123,33 +131,37 @@ function selectPreset(p: WorkoutPreset) {
         const current = presets.value.find(x => x.id === activePresetId.value)
         if (current && current.content !== workoutText.value) {
             const parsed = parseWorkout(workoutText.value)
-            updateWorkoutPreset(current.id, parsed.title, workoutText.value).then(updated => {
-                const idx = presets.value.findIndex(x => x.id === updated.id)
-                if (idx !== -1) presets.value[idx] = updated
-            }).catch(() => { })
+            localDb.upsert('workout_presets', {id: current.id}, {name: parsed.title, content: workoutText.value})
+            current.name = parsed.title
+            current.content = workoutText.value
         }
     }
     activePresetId.value = p.id
     workoutText.value = p.content
 }
 
-async function newPreset() {
-    const p = await createWorkoutPreset('New Workout', 'Title "New Workout"\n\n')
+function newPreset() {
+    const id = crypto.randomUUID()
+    localDb.upsert('workout_presets', {id}, {name: 'New Workout', content: 'Title "New Workout"\n\n', position: presets.value.length})
+    const p: WorkoutPreset = {id, name: 'New Workout', content: 'Title "New Workout"\n\n', position: presets.value.length}
     presets.value.push(p)
     selectPreset(p)
 }
 
-async function savePreset() {
+function savePreset() {
     if (!activePresetId.value) return
     const parsed = parseWorkout(workoutText.value)
-    const updated = await updateWorkoutPreset(activePresetId.value, parsed.title, workoutText.value)
-    const idx = presets.value.findIndex(x => x.id === updated.id)
-    if (idx !== -1) presets.value[idx] = updated
+    localDb.upsert('workout_presets', {id: activePresetId.value}, {name: parsed.title, content: workoutText.value})
+    const idx = presets.value.findIndex(x => x.id === activePresetId.value)
+    if (idx !== -1) {
+        presets.value[idx]!.name = parsed.title
+        presets.value[idx]!.content = workoutText.value
+    }
 }
 
-async function removePreset() {
+function removePreset() {
     if (!activePresetId.value) return
-    await deleteWorkoutPreset(activePresetId.value)
+    localDb.remove('workout_presets', {id: activePresetId.value})
     presets.value = presets.value.filter(x => x.id !== activePresetId.value)
     if (presets.value.length > 0) {
         selectPreset(presets.value[0]!)

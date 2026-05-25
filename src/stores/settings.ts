@@ -1,53 +1,45 @@
 import {defineStore} from 'pinia'
 import {ref} from 'vue'
-import {fetchSettings, setSetting} from '../services/api'
+import * as localDb from '../services/local-db'
 import type {Settings} from '../types'
 
-const RETRY_INTERVAL = 3000
+const DEFAULT_SETTINGS: Settings = {
+    work_mn: '300',
+    watchlist: 'AAPL,MSFT,GOOGL,AMZN,TSLA',
+}
 
 export const useSettingsStore = defineStore('settings', () => {
     const settings = ref<Settings>({work_mn: '300'})
     const loading = ref(false)
     const error = ref<string | null>(null)
-    let retryTimer: ReturnType<typeof setInterval> | null = null
 
-    function scheduleRetry(): void {
-        if (retryTimer) return
-        retryTimer = setInterval(() => {
-            load()
-        }, RETRY_INTERVAL)
-    }
-
-    function clearRetry(): void {
-        if (retryTimer) {
-            clearInterval(retryTimer)
-            retryTimer = null
-        }
-    }
-
-    async function load(): Promise<void> {
+    function load(): void {
         loading.value = true
         error.value = null
         try {
-            settings.value = await fetchSettings()
-            clearRetry()
+            // Ensure defaults exist
+            for (const [key, val] of Object.entries(DEFAULT_SETTINGS)) {
+                const existing = localDb.getByPk('settings', {key})
+                if (!existing) {
+                    localDb.runSql("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", [key, val])
+                }
+            }
+            const rows = localDb.getAll('settings')
+            const result: Settings = {}
+            for (const row of rows) {
+                result[row.key as string] = row.value as string
+            }
+            settings.value = result
         } catch (e: unknown) {
             error.value = (e as Error).message
-            scheduleRetry()
         } finally {
             loading.value = false
         }
     }
 
-    async function update(key: string, value: string): Promise<void> {
-        const old = settings.value[key]
+    function update(key: string, value: string): void {
         settings.value[key] = value
-        try {
-            settings.value = await setSetting(key, value)
-        } catch (e: unknown) {
-            error.value = (e as Error).message
-            settings.value[key] = old
-        }
+        localDb.upsert('settings', {key}, {value})
     }
 
     function get(key: string, fallback: string): string {
@@ -60,6 +52,10 @@ export const useSettingsStore = defineStore('settings', () => {
         const n = Number(v)
         return isNaN(n) ? fallback : n
     }
+
+    localDb.onChange((table) => {
+        if (table === 'settings') load()
+    })
 
     return {settings, loading, error, load, update, get, getNumber}
 })

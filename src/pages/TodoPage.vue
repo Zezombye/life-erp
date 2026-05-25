@@ -57,7 +57,7 @@ import TodoDetail from '../components/TodoDetail.vue'
 const todoStore = useTodoStore()
 const newTitle = ref('')
 const filter = ref('open')
-const activeTodoId = ref<number | null>(null)
+const activeTodoId = ref<string | null>(null)
 
 const filterOptions = computed(() => [
     {label: `Open (${openCount.value})`, value: 'open'},
@@ -73,10 +73,10 @@ const filteredTodos = computed(() =>
     todoStore.todos.filter(t => t.status === filter.value)
 )
 
-async function addTodo() {
+function addTodo() {
     const t = newTitle.value.trim()
     if (!t) return
-    await todoStore.add(t)
+    todoStore.add(t)
     newTitle.value = ''
 }
 </script>

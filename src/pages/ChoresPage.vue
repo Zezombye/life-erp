@@ -50,29 +50,29 @@ const choreStore = useChoreStore()
 const newTitle = ref('')
 const newInterval = ref(30)
 
-const editingId = ref<number | null>(null)
+const editingId = ref<string | null>(null)
 const editTitle = ref('')
 const editInterval = ref(30)
 
 onMounted(() => {choreStore.load()})
 
-async function addChore(): Promise<void> {
+function addChore(): void {
     const t = newTitle.value.trim()
     if (!t || !newInterval.value) return
-    await choreStore.add(t, newInterval.value)
+    choreStore.add(t, newInterval.value)
     newTitle.value = ''
     newInterval.value = 30
 }
 
-function startEdit(chore: {id: number; title: string; interval_days: number}): void {
+function startEdit(chore: {id: string; title: string; interval_days: number}): void {
     editingId.value = chore.id
     editTitle.value = chore.title
     editInterval.value = chore.interval_days
 }
 
-async function saveEdit(): Promise<void> {
+function saveEdit(): void {
     if (!editTitle.value.trim() || !editInterval.value) return
-    await choreStore.update(editingId.value!, editTitle.value.trim(), editInterval.value)
+    choreStore.update(editingId.value!, editTitle.value.trim(), editInterval.value)
     editingId.value = null
 }
 
@@ -80,8 +80,8 @@ function cancelEdit(): void {
     editingId.value = null
 }
 
-async function removeChore(id: number): Promise<void> {
-    await choreStore.remove(id)
+function removeChore(id: string): void {
+    choreStore.remove(id)
 }
 </script>
 

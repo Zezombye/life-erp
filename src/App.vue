@@ -6,6 +6,13 @@
                     <span>{{ item.label }}</span>
                 </router-link>
             </template>
+            <template #end>
+                <span class="sync-indicator" :class="connectionState">
+                    <span class="sync-dot"></span>
+                    {{ connectionState === 'online' ? '' : connectionState }}
+                    <span v-if="pendingCount > 0" class="sync-pending">{{ pendingCount }}</span>
+                </span>
+            </template>
         </Menubar>
         <div class="app-content">
             <DashboardPage :style="route.path !== '/' ? 'visibility: hidden; z-index: -999999; position: fixed;' : ''" />
@@ -21,10 +28,11 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted} from 'vue'
+import {onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import Menubar from 'primevue/menubar'
 import {useSettingsStore} from './stores/settings'
+import {init as initSync, getConnectionState, getPendingCount} from './services/sync-engine'
 import DashboardPage from './pages/DashboardPage.vue'
 import WorkoutPage from './pages/WorkoutPage.vue'
 import TodoPage from './pages/TodoPage.vue'
@@ -37,6 +45,9 @@ import SettingsPage from './pages/SettingsPage.vue'
 const route = useRoute()
 const router = useRouter()
 const settingsStore = useSettingsStore()
+const syncReady = ref(false)
+const connectionState = getConnectionState()
+const pendingCount = getPendingCount()
 
 const navItems = [
     {label: 'Dashboard', route: '/'},
@@ -49,7 +60,9 @@ const navItems = [
     {label: 'Settings', route: '/settings'},
 ]
 
-onMounted(() => {
+onMounted(async () => {
+    await initSync()
+    syncReady.value = true
     settingsStore.load()
 })
 </script>
@@ -74,5 +87,44 @@ onMounted(() => {
 .app-content {
     flex: 1;
     min-height: 0;
+}
+
+.sync-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: #a1a1aa;
+    padding: 0 12px;
+    text-transform: capitalize;
+}
+
+.sync-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22c55e;
+}
+
+.sync-indicator.offline .sync-dot {
+    background: #ef4444;
+}
+
+.sync-indicator.connecting .sync-dot {
+    background: #eab308;
+}
+
+.sync-indicator.syncing .sync-dot {
+    background: #3b82f6;
+}
+
+.sync-pending {
+    background: #3b82f6;
+    color: #fff;
+    border-radius: 8px;
+    padding: 0 5px;
+    font-size: 0.65rem;
+    min-width: 16px;
+    text-align: center;
 }
 </style>

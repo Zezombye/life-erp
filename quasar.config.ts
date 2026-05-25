@@ -67,6 +67,12 @@ export default defineConfig((/* ctx */) => {
             // extendViteConf (viteConf) {},
             // viteVuePluginOptions: {},
 
+            extendViteConf(viteConf) {
+                // Force Vite to pre-bundle sql.js (converts UMD → ESM)
+                viteConf.optimizeDeps = viteConf.optimizeDeps || {};
+                viteConf.optimizeDeps.include = [...(viteConf.optimizeDeps.include || []), 'sql.js'];
+            },
+
             vitePlugins: [
                 ['vite-plugin-checker', {
                     eslint: {

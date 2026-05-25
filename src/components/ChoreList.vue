@@ -56,8 +56,8 @@ const sortedChores = computed(() => {
         })
 })
 
-async function markDone(id: number): Promise<void> {
-    await choreStore.markDone(id)
+function markDone(id: string): void {
+    choreStore.markDone(id)
 }
 </script>
 

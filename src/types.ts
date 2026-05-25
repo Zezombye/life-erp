@@ -64,7 +64,7 @@ export interface WorkoutColumn {
 
 // ── Calendar ──
 export interface CalendarEvent {
-    id: number
+    id: string
     title: string
     date: string
     time: string | null
@@ -81,7 +81,7 @@ export interface CalendarEventInput {
 
 // ── Chores ──
 export interface Chore {
-    id: number
+    id: string
     title: string
     interval_days: number
     last_done: string | null
@@ -89,7 +89,7 @@ export interface Chore {
 
 // ── Todos ──
 export interface Todo {
-    id: number
+    id: string
     title: string
     status: 'open' | 'closed'
     created_at: string
@@ -97,7 +97,7 @@ export interface Todo {
 }
 
 export interface TodoMessage {
-    id: number
+    id: string
     content: string
     created_at: string
     updated_at: string

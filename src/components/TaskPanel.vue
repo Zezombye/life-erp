@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, computed, watch, nextTick, onMounted, onUnmounted} from 'vue'
+import {ref, computed, watch, nextTick, onMounted} from 'vue'
 import Button from 'primevue/button'
 import SelectButton from 'primevue/selectbutton'
 import {useTaskStore} from '../stores/tasks'
@@ -42,12 +42,7 @@ const logFilterOptions = computed(() => [
 onMounted(async () => {
     await taskStore.loadTasks()
     await taskStore.loadLogs()
-    taskStore.startStream()
     scrollToBottom()
-})
-
-onUnmounted(() => {
-    taskStore.stopStream()
 })
 
 // Auto-scroll on new logs

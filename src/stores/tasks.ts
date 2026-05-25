@@ -1,13 +1,13 @@
 import {defineStore} from 'pinia'
 import {ref, computed} from 'vue'
-import {fetchTasks, startTask, pauseTask, fetchTaskLogs, streamTaskLogs} from '../services/api'
+import {fetchTasks, fetchTaskLogs} from '../services/api'
+import {setTaskLogHandler, startTask as wsStartTask, pauseTask as wsPauseTask} from '../services/sync-engine'
 import type {Task, TaskLog, TaskLogParams} from '../types'
 
 export const useTaskStore = defineStore('tasks', () => {
     const tasks = ref<Task[]>([])
     const logs = ref<TaskLog[]>([])
     const filterTask = ref<string | null>(null)
-    let eventSource: EventSource | null = null
 
     const filteredLogs = computed((): TaskLog[] => {
         if (!filterTask.value) return logs.value
@@ -25,37 +25,20 @@ export const useTaskStore = defineStore('tasks', () => {
     }
 
     async function runTask(name: string): Promise<void> {
-        await startTask(name)
+        wsStartTask(name)
         await loadTasks()
     }
 
     async function togglePause(name: string, paused: boolean): Promise<void> {
-        await pauseTask(name, paused)
+        wsPauseTask(name, paused)
         await loadTasks()
     }
 
-    function startStream(): void {
-        if (eventSource) return
-        eventSource = streamTaskLogs()
-        eventSource.onmessage = (evt: MessageEvent) => {
-            try {
-                const row: TaskLog = JSON.parse(evt.data)
-                logs.value.push(row)
-                loadTasks()
-            } catch { }
-        }
-        eventSource.onerror = () => {
-            stopStream()
-            setTimeout(() => startStream(), 3000)
-        }
-    }
+    // Receive live task logs via WebSocket
+    setTaskLogHandler((log: TaskLog) => {
+        logs.value.push(log)
+        loadTasks()
+    })
 
-    function stopStream(): void {
-        if (eventSource) {
-            eventSource.close()
-            eventSource = null
-        }
-    }
-
-    return {tasks, logs, filterTask, filteredLogs, taskNames, loadTasks, loadLogs, runTask, togglePause, startStream, stopStream}
+    return {tasks, logs, filterTask, filteredLogs, taskNames, loadTasks, loadLogs, runTask, togglePause}
 })

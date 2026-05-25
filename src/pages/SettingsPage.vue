@@ -16,19 +16,41 @@
                     </div>
                 </div>
             </Panel>
+
+            <Panel header="Debug" class="mt-4">
+                <div class="flex flex-col gap-4">
+                    <div class="setting-row">
+                        <span class="setting-label">Wipe local database and re-sync all data from the server</span>
+                        <Button label="Wipe &amp; Resync" severity="danger" @click="wipeAndResync" :loading="resyncing" />
+                    </div>
+                </div>
+            </Panel>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import {onMounted} from 'vue'
+import {onMounted, ref} from 'vue'
 import Panel from 'primevue/panel'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
+import Button from 'primevue/button'
 import {useSettingsStore} from '../stores/settings'
+import {forceResync} from '../services/sync-engine'
 
 const settingsStore = useSettingsStore()
+const resyncing = ref(false)
+
+function wipeAndResync() {
+    resyncing.value = true
+    try {
+        forceResync()
+    } finally {
+        // Give it a moment so the user sees the loading state
+        setTimeout(() => {resyncing.value = false}, 1000)
+    }
+}
 
 onMounted(() => {
     settingsStore.load()

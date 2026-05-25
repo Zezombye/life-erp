@@ -1,10 +1,8 @@
 import {defineStore} from 'pinia'
 import {ref} from 'vue'
-import {fetchHabits, setHabitValue} from '../services/api'
+import * as localDb from '../services/local-db'
 import {useSettingsStore} from './settings'
 import type {HabitRow, HabitColumn, CellColor} from '../types'
-
-const RETRY_INTERVAL = 3000
 
 const HABIT_KEYS = ['business', 'reading_watching', 'misc', 'girls_family', 'mma']
 
@@ -115,59 +113,34 @@ export const useHabitStore = defineStore('habits', () => {
     const rows = ref<HabitRow[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
-    let retryTimer: ReturnType<typeof setInterval> | null = null
 
-    function scheduleRetry(): void {
-        if (retryTimer) return
-        retryTimer = setInterval(() => {
-            load()
-        }, RETRY_INTERVAL)
-    }
-
-    function clearRetry(): void {
-        if (retryTimer) {
-            clearInterval(retryTimer)
-            retryTimer = null
-        }
-    }
-
-    async function load(): Promise<void> {
+    function load(): void {
         loading.value = true
         error.value = null
         try {
-            rows.value = await fetchHabits()
-            clearRetry()
+            localDb.ensureHabitRows()
+            rows.value = localDb.getAll('habits') as HabitRow[]
+            rows.value.sort((a, b) => a.date.localeCompare(b.date))
         } catch (e: unknown) {
             error.value = (e as Error).message
-            scheduleRetry()
         } finally {
             loading.value = false
         }
     }
 
-    async function setValue(date: string, column: string, value: number | null): Promise<void> {
-        // Optimistic update
+    function setValue(date: string, column: string, value: number | null): void {
+        localDb.upsert('habits', {date}, {[column]: value})
+        // Update local state immediately
         const row = rows.value.find(r => r.date === date)
         if (row) {
             row[column] = value
         }
-
-        try {
-            const updatedRow = await setHabitValue(date, column, value)
-            // Replace with server response
-            const idx = rows.value.findIndex(r => r.date === updatedRow.date)
-            if (idx !== -1) {
-                rows.value[idx] = updatedRow
-            } else {
-                // New row (date didn't exist before)
-                rows.value.unshift(updatedRow)
-            }
-        } catch (e: unknown) {
-            error.value = (e as Error).message
-            // Reload to get consistent state
-            await load()
-        }
     }
+
+    // Subscribe to remote changes
+    localDb.onChange((table) => {
+        if (table === 'habits') load()
+    })
 
     return {rows, loading, error, load, setValue}
 })

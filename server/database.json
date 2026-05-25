@@ -40,7 +40,7 @@
     "habit_timer": {
         "columns": {
             "id": {
-                "type": "INTEGER",
+                "type": "TEXT",
                 "primary_key": true
             },
             "activity": {
@@ -60,7 +60,7 @@
     "workout_presets": {
         "columns": {
             "id": {
-                "type": "INTEGER",
+                "type": "TEXT",
                 "primary_key": true
             },
             "name": {
@@ -234,7 +234,7 @@
     "chores": {
         "columns": {
             "id": {
-                "type": "INTEGER",
+                "type": "TEXT",
                 "primary_key": true
             },
             "title": {
@@ -251,7 +251,7 @@
     "todos": {
         "columns": {
             "id": {
-                "type": "INTEGER",
+                "type": "TEXT",
                 "primary_key": true
             },
             "title": {
@@ -271,11 +271,11 @@
     "todo_messages": {
         "columns": {
             "id": {
-                "type": "INTEGER",
+                "type": "TEXT",
                 "primary_key": true
             },
             "todo_id": {
-                "type": "INTEGER"
+                "type": "TEXT"
             },
             "content": {
                 "type": "TEXT"
@@ -291,7 +291,7 @@
     "calendar_events": {
         "columns": {
             "id": {
-                "type": "INTEGER",
+                "type": "TEXT",
                 "primary_key": true
             },
             "title": {
@@ -347,6 +347,33 @@
                 "type": "TEXT"
             },
             "created_at": {
+                "type": "TEXT"
+            }
+        }
+    },
+    "_change_log": {
+        "sync": false,
+        "columns": {
+            "seq": {
+                "type": "INTEGER",
+                "primary_key": true
+            },
+            "table_name": {
+                "type": "TEXT"
+            },
+            "pk_value": {
+                "type": "TEXT"
+            },
+            "op": {
+                "type": "TEXT"
+            },
+            "data": {
+                "type": "TEXT"
+            },
+            "timestamp": {
+                "type": "TEXT"
+            },
+            "client_id": {
                 "type": "TEXT"
             }
         }

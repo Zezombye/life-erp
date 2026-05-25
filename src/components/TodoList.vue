@@ -36,7 +36,7 @@ import InputText from 'primevue/inputtext'
 import {useTodoStore} from '../stores/todos'
 
 const emit = defineEmits<{
-    openTodo: [id: number]
+    openTodo: [id: string]
 }>()
 const todoStore = useTodoStore()
 const newTitle = ref('')
@@ -49,15 +49,15 @@ const openTodos = computed(() =>
     todoStore.todos.filter((t: {status: string}) => t.status === 'open')
 )
 
-async function addTodo(): Promise<void> {
+function addTodo(): void {
     const t = newTitle.value.trim()
     if (!t) return
-    await todoStore.add(t)
+    todoStore.add(t)
     newTitle.value = ''
 }
 
-async function closeTodo(id: number): Promise<void> {
-    await todoStore.close(id)
+function closeTodo(id: string): void {
+    todoStore.close(id)
 }
 </script>
 

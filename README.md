@@ -14,7 +14,7 @@ Todo :
 - [x] Chore tracker
 - [x] Todo list
 - [x] Variable editor
-- [ ] Workout timer editor
+- [x] Workout timer editor
 - [x] Stock watchlist tracker
 - [x] Calendar with auto stock market events + ability to easily add events and reminders (+ email and push)
 - [x] Scheduled tasks

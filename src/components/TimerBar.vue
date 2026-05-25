@@ -40,7 +40,7 @@
 <script setup lang="ts">
 import {ref, onMounted, onUnmounted} from 'vue'
 import {useTimerStore, TIMER_ACTIVITIES} from '../stores/timer'
-import type {TimerState} from '../services/api'
+import type {TimerState} from '../stores/timer'
 
 const timerStore = useTimerStore()
 
@@ -65,8 +65,8 @@ const emit = defineEmits<{
     timerStopped: []
 }>()
 
-async function stopTimer(timerId: number) {
-    await timerStore.stop(timerId)
+function stopTimer(timerId: string) {
+    timerStore.stop(timerId)
     emit('timerStopped')
 }
 </script>

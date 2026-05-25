@@ -1,8 +1,6 @@
 import {defineStore} from 'pinia'
 import {ref} from 'vue'
-import {
-    fetchChores, createChore, updateChore, deleteChore, markChoreDone,
-} from '../services/api'
+import * as localDb from '../services/local-db'
 import type {Chore} from '../types'
 
 /**
@@ -33,11 +31,11 @@ export const useChoreStore = defineStore('chores', () => {
     const loading = ref(false)
     const error = ref<string | null>(null)
 
-    async function load(): Promise<void> {
+    function load(): void {
         loading.value = true
         error.value = null
         try {
-            chores.value = await fetchChores()
+            chores.value = localDb.getAll('chores')
         } catch (e: unknown) {
             error.value = (e as Error).message
         } finally {
@@ -45,31 +43,37 @@ export const useChoreStore = defineStore('chores', () => {
         }
     }
 
-    async function add(title: string, interval_days: number): Promise<Chore> {
-        const row = await createChore(title, interval_days)
-        chores.value.push(row)
+    function add(title: string, interval_days: number): Chore {
+        const id = crypto.randomUUID()
+        const row: Chore = {id, title, interval_days, last_done: null}
+        localDb.upsert('chores', {id}, {title, interval_days, last_done: null})
         return row
     }
 
-    async function update(id: number, title: string, interval_days: number): Promise<Chore> {
-        const row = await updateChore(id, title, interval_days)
+    function update(id: string, title: string, interval_days: number): void {
+        localDb.upsert('chores', {id}, {title, interval_days})
         const idx = chores.value.findIndex(c => c.id === id)
-        if (idx !== -1) chores.value[idx] = row
-        return row
+        if (idx !== -1) {
+            chores.value[idx]!.title = title
+            chores.value[idx]!.interval_days = interval_days
+        }
     }
 
-    async function remove(id: number): Promise<void> {
-        await deleteChore(id)
+    function remove(id: string): void {
+        localDb.remove('chores', {id})
         chores.value = chores.value.filter(c => c.id !== id)
     }
 
-    async function markDone(id: number): Promise<Chore> {
+    function markDone(id: string): void {
         const today = new Date().toISOString().slice(0, 10)
-        const row = await markChoreDone(id, today)
+        localDb.upsert('chores', {id}, {last_done: today})
         const idx = chores.value.findIndex(c => c.id === id)
-        if (idx !== -1) chores.value[idx] = row
-        return row
+        if (idx !== -1) chores.value[idx]!.last_done = today
     }
+
+    localDb.onChange((table) => {
+        if (table === 'chores') load()
+    })
 
     return {chores, loading, error, load, add, update, remove, markDone}
 })

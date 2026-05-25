@@ -61,7 +61,7 @@ import MarkdownIt from 'markdown-it'
 const md = new MarkdownIt({linkify: true, breaks: true})
 
 const props = defineProps<{
-    todoId: number
+    todoId: string
 }>()
 defineEmits<{
     close: []
@@ -82,41 +82,41 @@ function startEditTitle(): void {
     nextTick(() => titleInputEl.value?.focus())
 }
 
-async function saveTitle(): Promise<void> {
+function saveTitle(): void {
     if (!editingTitle.value) return
     editingTitle.value = false
     const t = titleDraft.value.trim()
     if (t && t !== todo.value?.title) {
-        await todoStore.rename(props.todoId, t)
+        todoStore.rename(props.todoId, t)
     }
 }
 
 // Message editing
-const editingMsgId = ref<number | null>(null)
+const editingMsgId = ref<string | null>(null)
 const msgEditDraft = ref('')
 
-function startEditMessage(msg: {id: number; content: string}): void {
+function startEditMessage(msg: {id: string; content: string}): void {
     editingMsgId.value = msg.id
     msgEditDraft.value = msg.content
 }
 
-async function saveMessageEdit(): Promise<void> {
+function saveMessageEdit(): void {
     if (!msgEditDraft.value.trim()) return
-    await todoStore.editMessage(props.todoId, editingMsgId.value!, msgEditDraft.value)
+    todoStore.editMessage(props.todoId, editingMsgId.value!, msgEditDraft.value)
     editingMsgId.value = null
 }
 
-async function deleteMessage(msgId: number): Promise<void> {
-    await todoStore.removeMessage(props.todoId, msgId)
+function deleteMessage(msgId: string): void {
+    todoStore.removeMessage(props.todoId, msgId)
 }
 
 // New message
 const newMessage = ref('')
 
-async function postMessage(): Promise<void> {
+function postMessage(): void {
     const c = newMessage.value.trim()
     if (!c) return
-    await todoStore.addMessage(props.todoId, c)
+    todoStore.addMessage(props.todoId, c)
     newMessage.value = ''
 }
 

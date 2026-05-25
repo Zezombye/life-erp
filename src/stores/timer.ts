@@ -1,7 +1,14 @@
 import {defineStore} from 'pinia'
 import {ref, computed} from 'vue'
-import {fetchHabitTimers, postHabitTimer} from '../services/api'
-import type {TimerState} from '../services/api'
+import * as localDb from '../services/local-db'
+
+export interface TimerState {
+    id: string
+    activity: string
+    started_at: string
+    paused_at: string | null
+    accumulated_ms: number
+}
 
 export const TIMER_ACTIVITIES = [
     {key: 'job', label: 'Job'},
@@ -40,39 +47,96 @@ export const useTimerStore = defineStore('timer', () => {
         return TIMER_ACTIVITIES.find(a => a.key === key)?.label ?? key
     }
 
-    async function load() {
+    function load(): void {
         try {
-            timers.value = await fetchHabitTimers()
+            timers.value = localDb.getAll('habit_timer')
+            timers.value.sort((a, b) => a.id.localeCompare(b.id))
         } catch {
             // Silently fail
         }
     }
 
-    async function start(activity: string) {
+    function start(activity: string): void {
         const timestamp = new Date().toISOString()
-        const result = await postHabitTimer('start', timestamp, {activity})
-        timers.value.push(result)
+        const id = crypto.randomUUID()
+        localDb.upsert('habit_timer', {id}, {
+            activity, started_at: timestamp, paused_at: null, accumulated_ms: 0,
+        })
+        timers.value.push({id, activity, started_at: timestamp, paused_at: null, accumulated_ms: 0})
     }
 
-    async function pause(timerId: number) {
+    function pause(timerId: string): void {
         const timestamp = new Date().toISOString()
-        const result = await postHabitTimer('pause', timestamp, {timer_id: timerId})
+        localDb.upsert('habit_timer', {id: timerId}, {paused_at: timestamp})
         const idx = timers.value.findIndex(t => t.id === timerId)
-        if (idx !== -1) timers.value[idx] = result
+        if (idx !== -1) timers.value[idx]!.paused_at = timestamp
     }
 
-    async function resume(timerId: number) {
-        const timestamp = new Date().toISOString()
-        const result = await postHabitTimer('resume', timestamp, {timer_id: timerId})
-        const idx = timers.value.findIndex(t => t.id === timerId)
-        if (idx !== -1) timers.value[idx] = result
+    function resume(timerId: string): void {
+        const timer = timers.value.find(t => t.id === timerId)
+        if (!timer || !timer.paused_at) return
+        const now = new Date()
+        const pausedAt = new Date(timer.paused_at)
+        const pauseDurationMs = now.getTime() - pausedAt.getTime()
+        const newAccumulated = (timer.accumulated_ms || 0) + pauseDurationMs
+        localDb.upsert('habit_timer', {id: timerId}, {paused_at: null, accumulated_ms: newAccumulated})
+        timer.paused_at = null
+        timer.accumulated_ms = newAccumulated
     }
 
-    async function stop(timerId: number) {
-        const timestamp = new Date().toISOString()
-        await postHabitTimer('stop', timestamp, {timer_id: timerId})
+    function stop(timerId: string): void {
+        const timer = timers.value.find(t => t.id === timerId)
+        if (!timer) return
+
+        const stoppedAt = new Date()
+        const startedAt = new Date(timer.started_at)
+        let accumulatedMs = timer.accumulated_ms || 0
+
+        let effectiveEnd: Date
+        if (timer.paused_at) {
+            const pausedAt = new Date(timer.paused_at)
+            accumulatedMs += stoppedAt.getTime() - pausedAt.getTime()
+            effectiveEnd = pausedAt
+        } else {
+            effectiveEnd = stoppedAt
+        }
+
+        const totalActiveMs = Math.max(0, (effectiveEnd.getTime() - startedAt.getTime()) - accumulatedMs)
+
+        // Split across days
+        const dayWall: Record<string, number> = {}
+        let ct = new Date(startedAt)
+        while (ct < effectiveEnd) {
+            const dayStr = ct.toISOString().slice(0, 10)
+            const nextMidnight = new Date(dayStr + 'T00:00:00')
+            nextMidnight.setDate(nextMidnight.getDate() + 1)
+            const dayEnd = nextMidnight < effectiveEnd ? nextMidnight : effectiveEnd
+            dayWall[dayStr] = (dayWall[dayStr] || 0) + (dayEnd.getTime() - ct.getTime())
+            ct = dayEnd
+        }
+
+        const totalWallMs = Object.values(dayWall).reduce((s, v) => s + v, 0)
+        if (totalWallMs > 0) {
+            for (const [dayStr, wallMs] of Object.entries(dayWall)) {
+                const ratio = wallMs / totalWallMs
+                const activeMn = Math.floor((totalActiveMs * ratio) / 60000)
+                if (activeMn <= 0) continue
+
+                // Read current value and add
+                const existing = localDb.getByPk('habits', {date: dayStr})
+                const currentVal = existing ? (existing[timer.activity] as number || 0) : 0
+                localDb.upsert('habits', {date: dayStr}, {[timer.activity]: currentVal + activeMn})
+            }
+        }
+
+        // Delete the timer
+        localDb.remove('habit_timer', {id: timerId})
         timers.value = timers.value.filter(t => t.id !== timerId)
     }
+
+    localDb.onChange((table) => {
+        if (table === 'habit_timer') load()
+    })
 
     return {
         timers, hasActive,

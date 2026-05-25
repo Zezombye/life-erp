@@ -160,9 +160,9 @@ function quickAdd(dateStr: string) {
     nextTick(() => addInput.value?.focus())
 }
 
-async function submitAdd(): Promise<void> {
+function submitAdd(): void {
     if (!newTitle.value.trim()) return
-    await calendarStore.addEvent({
+    calendarStore.addEvent({
         title: newTitle.value.trim(),
         date: addingDate.value!,
         time: newTime.value || null,
@@ -172,8 +172,8 @@ async function submitAdd(): Promise<void> {
     addingDate.value = null
 }
 
-async function removeEvent(id: number): Promise<void> {
-    await calendarStore.removeEvent(id)
+function removeEvent(id: string): void {
+    calendarStore.removeEvent(id)
 }
 </script>
 

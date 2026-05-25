@@ -1,9 +1,7 @@
 import {defineStore} from 'pinia'
 import {ref} from 'vue'
-import {fetchWorkouts, setWorkoutValue} from '../services/api'
+import * as localDb from '../services/local-db'
 import type {WorkoutRow, WorkoutColumn, CellColor} from '../types'
-
-const RETRY_INTERVAL = 3000
 
 // Generate columns for exercises 1-4, sets 1-5
 function buildColumns(): WorkoutColumn[] {
@@ -61,45 +59,30 @@ export const useWorkoutStore = defineStore('workouts', () => {
     const rows = ref<WorkoutRow[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
-    let retryTimer: ReturnType<typeof setInterval> | null = null
 
-    function scheduleRetry(): void {
-        if (retryTimer) return
-        retryTimer = setInterval(() => {load()}, RETRY_INTERVAL)
-    }
-
-    function clearRetry(): void {
-        if (retryTimer) {clearInterval(retryTimer); retryTimer = null}
-    }
-
-    async function load(): Promise<void> {
+    function load(): void {
         loading.value = true
         error.value = null
         try {
-            rows.value = await fetchWorkouts()
-            clearRetry()
+            localDb.ensureWorkoutRows()
+            rows.value = localDb.getAll('workouts') as WorkoutRow[]
+            rows.value.sort((a, b) => a.date.localeCompare(b.date))
         } catch (e: unknown) {
             error.value = (e as Error).message
-            scheduleRetry()
         } finally {
             loading.value = false
         }
     }
 
-    async function setValue(date: string, column: string, value: string | number | null): Promise<void> {
+    function setValue(date: string, column: string, value: string | number | null): void {
         const row = rows.value.find(r => r.date === date)
         if (row) row[column] = value
-
-        try {
-            const updatedRow = await setWorkoutValue(date, column, value)
-            const idx = rows.value.findIndex(r => r.date === updatedRow.date)
-            if (idx !== -1) rows.value[idx] = updatedRow
-            else rows.value.unshift(updatedRow)
-        } catch (e: unknown) {
-            error.value = (e as Error).message
-            await load()
-        }
+        localDb.upsert('workouts', {date}, {[column]: value})
     }
+
+    localDb.onChange((table) => {
+        if (table === 'workouts') load()
+    })
 
     return {rows, loading, error, load, setValue}
 })

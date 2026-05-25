@@ -40,9 +40,9 @@ import TodoDetail from '../components/TodoDetail.vue'
 import StockWatchlist from '../components/StockWatchlist.vue'
 import TaskPanel from '../components/TaskPanel.vue'
 
-const activeTodoId = ref<number | null>(null)
+const activeTodoId = ref<string | null>(null)
 
-function openTodoDetail(id: number): void {
+function openTodoDetail(id: string): void {
     activeTodoId.value = id
 }
 </script>

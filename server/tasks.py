@@ -1,11 +1,19 @@
 import threading
 import time
 import queue
+import asyncio
 from datetime import datetime
 
 import database
 
-# Global SSE subscribers: list of queue.Queue instances
+# Callback for broadcasting logs via WebSocket (set by main.py)
+_ws_broadcast_log_fn = None
+
+def set_ws_broadcast_log(fn):
+    global _ws_broadcast_log_fn
+    _ws_broadcast_log_fn = fn
+
+# Legacy SSE subscribers (kept for backward compatibility)
 _log_subscribers = []
 _log_subscribers_lock = threading.Lock()
 
@@ -23,12 +31,16 @@ def unsubscribe_logs(q):
             pass
 
 def _broadcast_log(log_row):
+    # Legacy SSE broadcast
     with _log_subscribers_lock:
         for q in _log_subscribers:
             try:
                 q.put_nowait(log_row)
             except queue.Full:
                 pass
+    # WebSocket broadcast
+    if _ws_broadcast_log_fn:
+        _ws_broadcast_log_fn(log_row)
 
 
 class TaskLogger:
